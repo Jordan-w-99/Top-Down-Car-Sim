@@ -24,3 +24,14 @@ function draw() {
   car.update();
   car.draw();
 }
+
+function keyPressed(){
+  if(keyCode == UP_ARROW){
+    car.gear++;
+    if(car.gear > 5) car.gear = 5;
+  }
+  else if(keyCode == DOWN_ARROW){
+    car.gear--;
+    if(car.gear < 0) car.gear = 0;
+  }
+}

@@ -1,7 +1,7 @@
 class Vehicle {
     constructor() {
         this.RPM = 1000;
-        this.gear = 0;
+        this.gear = 2;
         this.braking = false;
         this.throttlePosition = 0;
         this.wheelAngularAcceleration = 0;
@@ -12,12 +12,12 @@ class Vehicle {
         
         // Constants
         this.frontalArea = 2.2; // m^2
-        this.frictionCoeff = 0.30;
+        this.frictionCoeff = 0.20;
         this.dragCoeff = 0.5 * this.frictionCoeff * this.frontalArea * airDensity;
-        console.log(this.dragCoeff)
         this.rrCoeff = this.dragCoeff * 30;
         this.mass = 1500;
         this.brakingCoeff = 0.5;
+        this.brakingTorque = -100;
         this.torqueCurve = { // in Nm
             "1000": 400,
             "2000": 430,
@@ -74,7 +74,12 @@ class Vehicle {
     }
 
     calculateRPM(){
-        const RPM = 17 * this.gearRatios[this.gear] * this.diffRatio * 60 / TWO_PI;
+        let RPM = this.wheelAngularVel * this.gearRatios[this.gear] * this.diffRatio * 60 / TWO_PI;
+        if(RPM < 1000) RPM = 1000;
+        else if(RPM > 5999) RPM = 5999;
+
+        console.log(RPM);
+
         return RPM;
     }
 
@@ -82,6 +87,7 @@ class Vehicle {
         const lowerRPM = int(this.RPM / 1000) * 1000;
         const higherRPM = (int(this.RPM / 1000) + 1) * 1000;
         const rangePercent = (this.RPM / lowerRPM) - 1;
+
 
         const torque = lerp(this.torqueCurve[lowerRPM], this.torqueCurve[higherRPM], rangePercent);
         return torque;
@@ -139,15 +145,18 @@ class Vehicle {
     }
 
     calculateWheelAngularAcceleration(){
-        const wheelAngularAcceleration = (this.driveTorque - this.brakingF.mag() - this.rollResF.mag()) / 1000;
+        const tractionTorque = -2 * this.tractionF.mag() * this.wheelRadius; // For both rear wheels
+        const totalTorque = this.driveTorque + tractionTorque + (this.braking ? this.brakingTorque : 0);
+        const rWheelIntertia = 75 * (this.wheelRadius * this.wheelRadius); // For both rear wheels
+        const wheelAngularAcceleration = totalTorque / rWheelIntertia;
+        // console.log(wheelAngularAcceleration);
 
         return wheelAngularAcceleration ? wheelAngularAcceleration : 0;
     }
 
     calculateWheelAngularVel(){
         const wheelAngularVel = this.wheelAngularVel + this.wheelAngularAcceleration * deltaTime;
-        console.log(this.wheelAngularAcceleration);
-        return wheelAngularVel;
+        return wheelAngularVel / 50;
     }
 
     accelerate(){
